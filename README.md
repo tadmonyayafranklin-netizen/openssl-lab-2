@@ -74,16 +74,10 @@ wget https://raw.githubusercontent.com/dwyl/english-words/master/words.txt
 
 ## ⚙️ Compilation
 
-Compile using OpenSSL:
+Compile the Makefile using:
 
 ```bash
-gcc crack.c -o crack -lcrypto
-```
-
-If that fails, try:
-
-```bash
-gcc crack.c -o crack $(pkg-config --cflags --libs openssl)
+make
 ```
 
 ---
@@ -91,7 +85,7 @@ gcc crack.c -o crack $(pkg-config --cflags --libs openssl)
 ## ▶️ Run the program
 
 ```bash
-./crack
+./enc
 ```
 
 ---
