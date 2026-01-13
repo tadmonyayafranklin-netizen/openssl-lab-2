@@ -1,7 +1,3 @@
-Here is a complete **README.md** you can put in your project folder.
-
----
-
 # 🔐 AES-128-CBC Key Cracking using OpenSSL EVP
 
 This project demonstrates how to brute-force an AES-128-CBC encryption key using the **OpenSSL EVP cryptographic API**.
