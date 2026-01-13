@@ -1,13 +1,23 @@
-# 🔐 AES-128-CBC Key Cracking using OpenSSL EVP
+# 🔐 AES‑256‑CBC Dictionary Attack (OpenSSL Compatible)
 
-This project demonstrates how to brute-force an AES-128-CBC encryption key using the **OpenSSL EVP cryptographic API**.
-The key is known to be an English word padded with spaces (`0x20`) to 16 bytes.
+This project demonstrates how to recover an AES encryption key when the key is a short English word, using a dictionary attack against OpenSSL‑generated ciphertext.
+
+The ciphertext was produced using:
+
+```
+openssl enc -aes-256-cbc -salt -pass pass:<word>
+```
+
+The password is:
+
+* An English word
+* Shorter than 16 characters
+* Padded with ASCII spaces (0x20) to 16 bytes before being used
+* Processed through OpenSSL’s EVP_BytesToKey KDF (MD5 + salt)
 
 ---
 
-## 📌 Problem Description
-
-We are given:
+## 📄 Given Data
 
 **Plaintext**
 
@@ -18,112 +28,138 @@ This is a top secret.
 **Ciphertext (hex)**
 
 ```
-8d20e5056a8d24d0462ce74e4904c1b5
-13e10d1df4a2ef2ad4540fae1ca0aaf9
+53616c7465645f5f43f821cf72591120150e4caadf447f6127be828fbaf0820f3736811f32dc2adeb0bb9c2a0259f97f
 ```
 
-**Encryption details**
+The ciphertext begins with:
 
-* Algorithm: AES-128-CBC
-* IV: all zeros (16 bytes)
-* Key: an English word padded with spaces to 16 bytes
+```
+53616c7465645f5f = "Salted__"
+```
 
-Your task is to recover the original English word.
+This indicates OpenSSL salted encryption was used.
 
 ---
 
-## 🧰 Requirements
+## 🔑 Cryptographic Model
 
-You need the OpenSSL development libraries.
+OpenSSL performs the following steps:
 
-Install them on Ubuntu / WSL:
+```
+Salt = bytes 8..15 of ciphertext
+Key, IV = EVP_BytesToKey(
+              AES‑256‑CBC,
+              MD5,
+              Password (padded with spaces),
+              Salt
+          )
+```
+
+Then AES‑256‑CBC is applied.
+
+Our cracking program replicates this process exactly.
+
+---
+
+## 🧠 Attack Strategy
+
+We:
+
+1. Extract the salt from the ciphertext
+2. Try each English word from a dictionary
+3. Pad it to 16 bytes with spaces
+4. Use EVP_BytesToKey to derive key and IV
+5. Decrypt the ciphertext
+6. Check whether the result matches
+   `This is a top secret.`
+
+When it matches, the key is found.
+
+---
+
+## 🧪 Build Instructions
+
+Make sure OpenSSL development headers are installed.
+
+### On Linux / WSL
 
 ```bash
-sudo apt update
 sudo apt install libssl-dev
 ```
 
-Verify installation:
+Compile:
 
 ```bash
-ls /usr/include/openssl/evp.h
+gcc crack.c -o crack -lcrypto
 ```
 
 ---
 
-## 📂 Files
+## 📁 Files
 
-| File        | Description                                  |
-| ----------- | -------------------------------------------- |
-| `crack.c`   | Brute-force AES key search using OpenSSL EVP |
-| `words.txt` | English dictionary file                      |
+| File                | Description                                   |
+| ------------------- | --------------------------------------------- |
+| `crack.c`           | C program that performs the dictionary attack |
+| `words.txt` | Word list used for brute‑force                |
+| `README.md`         | This file                                     |
 
 ---
 
-## 📥 Download the dictionary
+## ▶ Running the attack
 
 ```bash
-wget https://raw.githubusercontent.com/dwyl/english-words/master/words.txt
+./crack
+```
+
+When the correct key is found, it will print:
+
+```
+KEY FOUND: <word>
 ```
 
 ---
 
-## ⚙️ Compilation
+## 🔍 Verifying with OpenSSL
 
-Compile the Makefile using:
+Once the key is found (for example `secret`), verify:
 
 ```bash
-make
+echo "53616c7465645f5f43f821cf72591120150e4caadf447f6127be828fbaf0820f3736811f32dc2adeb0bb9c2a0259f97f" | xxd -r -p > ct.bin
+
+openssl enc -aes-256-cbc -d -in ct.bin -pass pass:secret
+```
+
+Output:
+
+```
+This is a top secret.
 ```
 
 ---
 
-## ▶️ Run the program
+## 🧩 Why this works
 
-```bash
-./enc
-```
+OpenSSL’s `enc` command does NOT directly use the password as the AES key.
+It uses a **weak MD5‑based key derivation function**, which makes short dictionary words vulnerable to brute‑force attacks.
 
----
-
-## 🧪 What the program does
-
-For each word in the dictionary:
-
-1. Pads the word with spaces (`0x20`) to 16 bytes
-2. Encrypts the known plaintext using AES-128-CBC
-3. Compares the result with the given ciphertext
-4. Prints the key when a match is found
+This project demonstrates that weakness.
 
 ---
 
-## ✅ Example Output
+## ⚠ Security Lesson
+
+Never use:
 
 ```
-KEY FOUND: "secret"
-Full AES key = "secret          "
+openssl enc -aes-256-cbc -pass pass:password
 ```
 
-(The spaces are real padding bytes.)
+for real security.
 
----
+Always use:
 
-## 🔐 Why this works
-
-AES-CBC with a known IV (all zeros) and known plaintext allows verification of any guessed key:
-
-```
-Encrypt(plaintext, key) == known_ciphertext
-```
-
-Since the key is from a dictionary, brute force becomes feasible.
-
----
-
-## 📎 Notes
-
-* The EVP API is used, not OpenSSL command-line tools (per assignment rules).
-* Padding uses `0x20` (space), not zero bytes.
-* The ciphertext is compared byte-for-byte for correctness.
-
+* PBKDF2
+* bcrypt
+* scrypt
+* Argon2
 
