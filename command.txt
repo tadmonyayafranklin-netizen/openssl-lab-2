@@ -1,0 +1,3 @@
+openssl enc -e -aes-128-cbc -in plain.txt -out cipher.bin
+
+openssl enc -d -aes-128-cbc -in cipher.bin -out original.txt
