@@ -108,7 +108,7 @@ make
 ## ▶ Running the attack
 
 ```bash
-./crack
+./enc
 ```
 
 When the correct key is found, it will print:
