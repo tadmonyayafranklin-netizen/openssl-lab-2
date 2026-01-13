@@ -87,10 +87,10 @@ Make sure OpenSSL development headers are installed.
 sudo apt install libssl-dev
 ```
 
-Compile:
+Compile the Makefile using:
 
 ```bash
-gcc crack.c -o crack -lcrypto
+make
 ```
 
 ---
